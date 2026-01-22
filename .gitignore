@@ -44,3 +44,15 @@ notification.mp3
 /cache
 trace.json
 /sysinfo-????-??-??-??-??.json
+# Local model folders / artifacts
+Lora/
+ONNX/
+VAE/
+VAE-approx/
+deepbooru/
+karlo/
+torch_deepdanbooru/
+
+# Logs
+*.log
+logs/
