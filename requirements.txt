@@ -1,40 +1,43 @@
+# Core dependencies - pinned for DirectML stability (Dec 2025)
 GitPython
-Pillow
-accelerate
-
+Pillow>=9.5.0
+accelerate>=0.21.0
 blendmodes
 clean-fid
-diffusers
+diffusers>=0.20.0
 diskcache
 einops
 facexlib
 fastapi>=0.90.1
-gradio==3.41.2
+gradio==3.41.2                  # Keep this exact version - newer ones often break DirectML
 inflection
 jsonmerge
 kornia
 lark
-numpy<2
+numpy==1.26.4                   # Critical: Lock to 1.26.4 to prevent dtype size errors with scikit-image
 omegaconf
 open-clip-torch
-
 piexif
-protobuf==4.25.3
+protobuf==4.25.3                # Matches your original - safe with mediapipe 0.10.14
 psutil
 pytorch_lightning
 requests
 resize-right
-
 safetensors
-scikit-image>=0.19
+scikit-image==0.24.0            # Stable, compatible with numpy 1.26.4
 tomesd
-torch>=2.2.1
+torch>=2.2.1,<2.3.0             # 2.2.x is most reliable on DirectML right now
 torchdiffeq
 torchsde
 transformers==4.30.2
 pillow-avif-plugin==1.4.3
-
 onnx==1.16.2
-onnxruntime
-optimum
-olive-ai
+onnxruntime-directml            # Use the DirectML-specific backend instead of generic onnxruntime
+optimum[exporters]              # Optional but useful for ONNX export; add [exporters] for full features
+olive-ai                        # Keep as requested
+
+# Additional recommended pins to prevent future mediapipe/jax/ultralytics NumPy upgrades
+mediapipe==0.10.14              # Prevents automatic numpy 2.x pull
+ultralytics==8.2.98             # Older stable version before heavy numpy 2.x dependencies
+jax==0.4.33                     # Compatible with numpy 1.26
+jaxlib==0.4.33

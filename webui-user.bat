@@ -1,42 +1,67 @@
 @echo off
-REM === Squad WebUI Launcher: AMD Ryzen 7 5700G + RX 6650 XT 8GB ===
+setlocal enabledelayedexpansion
 
-REM ✅ Optional: Explicit Python path
-set PYTHON=c:\AUTO1111\stable-diffusion-webui\venv\Scripts\python.exe
+REM ============================================================
+REM Stable Diffusion WebUI - AMD (DirectML) Launcher
+REM GPU: AMD RX 9060 XT 16GB
+REM Repo: lshqqytiger DirectML lineage (your fork)
+REM ============================================================
 
-REM ✅ Optional: Virtual environment directory
-set VENV_DIR=venv
+set "ROOT=%~dp0"
+cd /d "%ROOT%"
 
-REM ✅ Optional: Git path if needed
-REM set GIT=git
-
-REM Ensure logs directory exists to avoid "The system cannot find the path specified." when redirecting output
-if not exist "%~dp0logs" (
-    mkdir "%~dp0logs"
+REM --- Ensure logs directory exists ---
+if not exist "%ROOT%logs" (
+    mkdir "%ROOT%logs"
 )
 
-REM Sanity-check PYTHON path; fall back to local venv if the explicitly set path is missing
+REM --- VENV / Python ---
+REM Prefer local venv python. If missing, WebUI will create venv when running webui.bat.
+set "VENV_DIR=venv"
+set "PYTHON=%ROOT%%VENV_DIR%\Scripts\python.exe"
+
 if not exist "%PYTHON%" (
-    echo WARNING: Python executable not found at %PYTHON%
-    echo Attempting fallback to local virtual environment: %VENV_DIR%\Scripts\python.exe
-    set "PYTHON=%~dp0%VENV_DIR%\Scripts\python.exe"
-    if not exist "%PYTHON%" (
-        echo ERROR: Could not find Python executable at %PYTHON%
-        echo Please create the virtual environment or set PYTHON to the correct path in webui-user.bat
-        pause
-    ) else (
-        echo Found Python at %PYTHON%
-    )
+    echo [WARN] Python not found at: %PYTHON%
+    echo [INFO] If this is first run, launching webui.bat will create the venv.
 )
 
-REM ✅ Fallback flags if not injected by PowerShell
-if not defined COMMANDLINE_ARGS (
-set COMMANDLINE_ARGS=--use-directml --precision full --no-half --lowvram --disable-nan-check --skip-torch-cuda-test --loglevel INFO --skip-install --enable-insecure-extension-access --theme dark --opt-split-attention
+REM ============================================================
+REM AMD DirectML Recommended Flags (RX 9060 XT 16GB)
+REM ============================================================
+REM Core:
+REM --use-directml      : DirectML backend
+REM --no-half-vae       : Helps avoid SDXL/Pony VAE decode weirdness on some setups
+REM --skip-torch-cuda-test : Prevent CUDA checks
+REM Optional stability:
+REM --disable-nan-check : Only if you still get NaNs/black images after UI upcast setting
+REM VRAM modes:
+REM --medvram           : safer if you run heavy SDXL/Pony + ControlNet
+REM --lowvram           : last resort
+REM ============================================================
 
+REM ---- Choose VRAM mode: default / medvram / lowvram ----
+set "VRAM_MODE=default"
+
+set "COMMANDLINE_ARGS=--use-directml --no-half-vae --skip-torch-cuda-test"
+
+if /I "%VRAM_MODE%"=="medvram" set "COMMANDLINE_ARGS=%COMMANDLINE_ARGS% --medvram"
+if /I "%VRAM_MODE%"=="lowvram" set "COMMANDLINE_ARGS=%COMMANDLINE_ARGS% --lowvram"
+
+REM If you still get NaNs after enabling Settings -> Optimizations -> Upcast cross-attention to float32,
+REM uncomment the next line:
+REM set "COMMANDLINE_ARGS=%COMMANDLINE_ARGS% --disable-nan-check"
+
+REM --- Log launch ---
+echo [%DATE% %TIME%] Launching with: %COMMANDLINE_ARGS%>> "%ROOT%logs\launch.log"
+
+REM --- Launch ---
+set "LOGFILE=%ROOT%webui_directml.log"
+echo [INFO] Launching with args: %COMMANDLINE_ARGS% > "%LOGFILE%"
+
+REM Use webui.bat for standard environment setup if python isn't present yet
+if not exist "%PYTHON%" (
+    call webui.bat
+    exit /b
 )
 
-REM ✅ Optional: Log launch timestamp
-echo [%DATE% %TIME%] Launching WebUI with flags: %COMMANDLINE_ARGS% >> logs\launch.log
-
-REM 🚀 Launch WebUI
-call webui.bat
+call "%PYTHON%" launch.py %COMMANDLINE_ARGS% >> "%LOGFILE%" 2>&1
